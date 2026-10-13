@@ -10,14 +10,22 @@ export async function onRequestGet(context) {
   const user = await verifyToken(request, env);
   if (!user) return new Response('Unauthorized', { status: 401 });
 
-  let users = await env.SALES_KV.get('users', { type: 'json' });
-  if (!users) {
-    users = [{ username: 'admin', password: 'admin123' }];
-    await env.SALES_KV.put('users', JSON.stringify(users));
+  const url = new URL(request.url);
+  const month = url.searchParams.get('month');
+
+  const allSales = await env.SALES_KV.get('sales', { type: 'json' }) || {};
+  const allFreezer = await env.SALES_KV.get('freezer', { type: 'json' }) || {};
+
+  if (month) {
+    return new Response(JSON.stringify({
+      sales: { [month]: allSales[month] || {} },
+      freezer: { [month]: allFreezer[month] || {} }
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
-  const safeUsers = users.map(u => ({ username: u.username }));
-  return new Response(JSON.stringify({ users: safeUsers }), {
+  return new Response(JSON.stringify({ sales: allSales, freezer: allFreezer }), {
     headers: { 'Content-Type': 'application/json' }
   });
 }
@@ -27,33 +35,17 @@ export async function onRequestPost(context) {
   const user = await verifyToken(request, env);
   if (!user) return new Response('Unauthorized', { status: 401 });
 
-  const { username, password } = await request.json();
-  let users = await env.SALES_KV.get('users', { type: 'json' }) || [];
+  const { month, sales, freezer } = await request.json();
+  if (!month) return new Response('Month required', { status: 400 });
 
-  const existingIdx = users.findIndex(u => u.username === username);
-  if (existingIdx >= 0) {
-    users[existingIdx].password = password;
-  } else {
-    users.push({ username, password });
-  }
+  const allSales = await env.SALES_KV.get('sales', { type: 'json' }) || {};
+  const allFreezer = await env.SALES_KV.get('freezer', { type: 'json' }) || {};
 
-  await env.SALES_KV.put('users', JSON.stringify(users));
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
+  allSales[month] = sales || {};
+  allFreezer[month] = freezer || {};
 
-export async function onRequestDelete(context) {
-  const { request, env } = context;
-  const user = await verifyToken(request, env);
-  if (!user) return new Response('Unauthorized', { status: 401 });
-
-  const url = new URL(request.url);
-  const username = url.searchParams.get('username');
-
-  let users = await env.SALES_KV.get('users', { type: 'json' }) || [];
-  users = users.filter(u => u.username !== username);
-  await env.SALES_KV.put('users', JSON.stringify(users));
+  await env.SALES_KV.put('sales', JSON.stringify(allSales));
+  await env.SALES_KV.put('freezer', JSON.stringify(allFreezer));
 
   return new Response(JSON.stringify({ success: true }), {
     headers: { 'Content-Type': 'application/json' }
