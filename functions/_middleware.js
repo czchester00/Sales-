@@ -2,7 +2,7 @@ export async function onRequest(context) {
   const { request, next } = context;
   const url = new URL(request.url);
 
-  // Lewati Basic Auth untuk endpoint API (karena API dilindungi oleh session token)
+  // Lewati Basic Auth untuk endpoint API
   if (url.pathname.startsWith('/api/')) {
     return next();
   }
