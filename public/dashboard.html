@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Penjualan</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; }
@@ -24,16 +25,18 @@
   .mode-controls { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
   .btn { padding: 0.5rem 1rem; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .btn:active { transform: scale(0.97); }
-  .btn-admin { background: #f39c12; color: white; }
-  .btn-admin:hover { background: #e67e22; }
   .btn-edit { background: #667eea; color: white; }
   .btn-edit:hover { background: #5568d3; }
   .btn-view { background: #95a5a6; color: white; }
   .btn-save { background: #27ae60; color: white; }
   .btn-save:hover { background: #229954; }
+  .btn-save:disabled { background: #95a5a6; cursor: not-allowed; }
   .btn-cancel { background: #e74c3c; color: white; }
   .btn-cancel:hover { background: #c0392b; }
-  .badge-admin { background: #d4edda; color: #155724; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+  .btn-refresh { background: #3498db; color: white; }
+  .btn-refresh:hover { background: #2980b9; }
+  .btn-excel { background: #16a085; color: white; }
+  .btn-excel:hover { background: #138d75; }
   
   .alert { padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; font-weight: 600; display: none; }
   .alert.show { display: block; animation: slideDown 0.3s; }
@@ -95,6 +98,12 @@
   .save-bar .info .count { color: #667eea; font-weight: 700; }
   
   .mobile-cards { display: none; }
+  
+  .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); display: none; justify-content: center; align-items: center; z-index: 300; flex-direction: column; gap: 1rem; }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 50px; height: 50px; border: 5px solid #e0e0e0; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay .text { color: #667eea; font-weight: 700; font-size: 1rem; }
   
   @media (max-width: 768px) {
     .cards { grid-template-columns: 1fr 1fr; }
@@ -193,10 +202,12 @@
       <button class="btn btn-view" id="viewToggleBtn" onclick="toggleMobileView()" style="display: none;">
         表格模式 Mode Tabel
       </button>
-      <button class="btn btn-admin" id="adminBtn" onclick="openAdminModal()">🔑 Kode Admin</button>
-      <button class="btn btn-edit" id="editBtn" onclick="enterEditMode()" style="display: none;">✏️ Mode Edit</button>
+      <button class="btn btn-refresh" onclick="loadFromServer()" title="Muat ulang dari server">🔄 Refresh</button>
+      <button class="btn btn-excel" onclick="downloadExcel()" title="Download data sebagai Excel">📥 Download Excel</button>
+      <button class="btn btn-excel" onclick="document.getElementById('excelFileInput').click()" title="Upload file Excel">📤 Upload Excel</button>
+      <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display: none;" onchange="uploadExcel(event)">
+      <button class="btn btn-edit" id="editBtn" onclick="enterEditMode()">✏️ Mode Edit</button>
       <button class="btn btn-view" id="viewBtn" onclick="exitEditMode()" style="display: none;">👁️ Mode Lihat</button>
-      <span class="badge-admin" id="adminBadge" style="display: none;">👤 Admin</span>
     </div>
   </div>
   
@@ -236,19 +247,7 @@
   <div class="info">📝 <span class="count" id="changeCount">0</span> perubahan belum disimpan</div>
   <div style="display: flex; gap: 0.8rem;">
     <button class="btn btn-cancel" onclick="cancelChanges()">❌ Batal</button>
-    <button class="btn btn-save" onclick="saveChanges()">💾 Simpan</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="adminModal">
-  <div class="modal">
-    <h3>🔑 Kode Admin</h3>
-    <p class="subtitle">Masukkan kode admin untuk mengaktifkan mode edit</p>
-    <input type="password" id="adminCodeInput" placeholder="••••" inputmode="numeric" maxlength="10">
-    <div class="modal-actions">
-      <button class="btn btn-cancel" onclick="closeAdminModal()">Batal</button>
-      <button class="btn btn-save" onclick="verifyAdminCode()">Verifikasi</button>
-    </div>
+    <button class="btn btn-save" id="saveBtn" onclick="saveChanges()">💾 Simpan</button>
   </div>
 </div>
 
@@ -264,31 +263,118 @@
   </div>
 </div>
 
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="text" id="loadingText">Memuat data...</div>
+</div>
+
 <script>
 const MARKETS = [
   { id: 'blitar', name: 'Blitar 勿里达' },
   { id: 'tulungagung', name: 'Tulungagung 图龙阿贡' }
 ];
 
-const SAMPLE_DATA = {
-  '2026-10': {
-    blitar:      [823, 675, 752, 0, 760, 728, 1020, 870, 793, 787, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    tulungagung: [687, 630, 798, 0, 827, 824, 784, 810, 706, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  }
-};
-
-const FREEZER_DATA = {
-  '2026-10': { blitar: 2151, tulungagung: 2156 }
-};
-
+let serverData = { sales: {}, freezer: {} };
 let workingData = null;
 let workingFreezer = null;
+
 let currentMonth = '2026-10';
 let currentFilter = 'all';
-let isAdmin = false;
 let isEditMode = false;
 let changedCells = new Set();
 
+// ===== API HELPER =====
+function getToken() {
+  return localStorage.getItem('session_token') || '';
+}
+
+async function apiGet(url) {
+  const res = await fetch(url, {
+    headers: { 'Authorization': 'Bearer ' + getToken() }
+  });
+  if (res.status === 401) {
+    logout();
+    throw new Error('Session expired');
+  }
+  if (!res.ok) throw new Error('API error: ' + res.status);
+  return res.json();
+}
+
+async function apiPost(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + getToken()
+    },
+    body: JSON.stringify(body)
+  });
+  if (res.status === 401) {
+    logout();
+    throw new Error('Session expired');
+  }
+  if (!res.ok) throw new Error('API error: ' + res.status);
+  return res.json();
+}
+
+// ===== LOAD DATA DARI SERVER =====
+async function loadFromServer() {
+  showLoading('Memuat data...');
+  try {
+    const data = await apiGet('/api/sales?month=' + currentMonth);
+    serverData.sales = data.sales || {};
+    serverData.freezer = data.freezer || {};
+    render();
+    showAlert('✅ Data berhasil dimuat', 'success');
+  } catch (err) {
+    showAlert('❌ Gagal memuat data: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ===== SAVE KE SERVER =====
+async function saveChanges() {
+  if (changedCells.size === 0) {
+    showAlert('Tidak ada perubahan untuk disimpan', 'info');
+    return;
+  }
+  
+  showLoading('Menyimpan data...');
+  document.getElementById('saveBtn').disabled = true;
+  
+  try {
+    const monthSales = workingData[currentMonth] || {};
+    const monthFreezer = workingFreezer[currentMonth] || {};
+    
+    await apiPost('/api/sales', {
+      month: currentMonth,
+      sales: monthSales,
+      freezer: monthFreezer
+    });
+    
+    serverData.sales[currentMonth] = JSON.parse(JSON.stringify(monthSales));
+    serverData.freezer[currentMonth] = JSON.parse(JSON.stringify(monthFreezer));
+    
+    changedCells.clear();
+    updateChangeCount();
+    showAlert('💾 Data berhasil disimpan ke server!', 'success');
+    
+    isEditMode = false;
+    document.body.classList.remove('edit-mode');
+    document.getElementById('editBtn').style.display = 'inline-block';
+    document.getElementById('viewBtn').style.display = 'none';
+    document.getElementById('saveBar').classList.remove('show');
+    render();
+  } catch (err) {
+    showAlert('❌ Gagal menyimpan: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+    document.getElementById('saveBtn').disabled = false;
+  }
+}
+
+// ===== FUNGSI BANTU =====
 function getDaysInMonth(monthStr) {
   const [year, month] = monthStr.split('-').map(Number);
   return new Date(year, month, 0).getDate();
@@ -305,7 +391,7 @@ function getSundayDates(monthStr) {
 }
 
 function getData(marketId, date) {
-  const src = isEditMode && workingData ? workingData : SAMPLE_DATA;
+  const src = isEditMode && workingData ? workingData : serverData.sales;
   const m = src[currentMonth];
   return (m && m[marketId]) ? (m[marketId][date - 1] || 0) : 0;
 }
@@ -320,7 +406,7 @@ function setData(marketId, date, value) {
 }
 
 function getFreezer(marketId) {
-  const src = isEditMode && workingFreezer ? workingFreezer : FREEZER_DATA;
+  const src = isEditMode && workingFreezer ? workingFreezer : serverData.freezer;
   const m = src[currentMonth];
   return m ? (m[marketId] || 0) : 0;
 }
@@ -332,10 +418,11 @@ function setFreezer(marketId, value) {
 }
 
 function initWorkingCopy() {
-  workingData = JSON.parse(JSON.stringify(SAMPLE_DATA));
-  workingFreezer = JSON.parse(JSON.stringify(FREEZER_DATA));
+  workingData = JSON.parse(JSON.stringify(serverData.sales));
+  workingFreezer = JSON.parse(JSON.stringify(serverData.freezer));
 }
 
+// ===== PERHITUNGAN =====
 function calculateTotal(marketId) {
   const days = getDaysInMonth(currentMonth);
   let t = 0;
@@ -382,6 +469,120 @@ function calculateMarketPower(marketId) {
   return f > 0 ? avg / f : 0;
 }
 
+// ===== DOWNLOAD EXCEL =====
+function downloadExcel() {
+  const days = getDaysInMonth(currentMonth);
+  const marketsToShow = MARKETS.filter(m => currentFilter === 'all' || currentFilter === m.id);
+  
+  const header = ['市场 Market', '冰柜数 Freezer'];
+  for (let d = 1; d <= days; d++) header.push(d);
+  header.push('平均销售 Rata-rata', '近三天平均 3 Hari', '合计 Total', '工作日 Hari Kerja', '单点卖力 Kekuatan Pasar');
+  
+  const rows = [header];
+  
+  marketsToShow.forEach(market => {
+    const row = [market.name, getFreezer(market.id)];
+    for (let d = 1; d <= days; d++) row.push(getData(market.id, d));
+    row.push(
+      parseFloat(calculateAverage(market.id).toFixed(1)),
+      parseFloat(calculateLast3Days(market.id).avg.toFixed(1)),
+      calculateTotal(market.id),
+      countWorkDays(market.id),
+      parseFloat(calculateMarketPower(market.id).toFixed(2))
+    );
+    rows.push(row);
+  });
+  
+  if (marketsToShow.length > 1) {
+    const grandRow = ['TOTAL SEMUA', '—'];
+    for (let d = 1; d <= days; d++) {
+      let daySum = 0;
+      marketsToShow.forEach(m => daySum += getData(m.id, d));
+      grandRow.push(daySum);
+    }
+    let gt = 0, gw = 0;
+    marketsToShow.forEach(m => { gt += calculateTotal(m.id); gw += countWorkDays(m.id); });
+    grandRow.push(
+      gw > 0 ? parseFloat((gt / gw).toFixed(1)) : 0,
+      '—',
+      gt,
+      gw,
+      '—'
+    );
+    rows.push(grandRow);
+  }
+  
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, currentMonth);
+  XLSX.writeFile(wb, `penjualan-${currentMonth}.xlsx`);
+  showAlert('📥 File Excel berhasil diunduh', 'success');
+}
+
+// ===== UPLOAD EXCEL =====
+async function uploadExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (!confirm(`Upload file "${file.name}"? Data yang ada di bulan ${currentMonth} akan ditimpa.`)) {
+    event.target.value = '';
+    return;
+  }
+  
+  showLoading('Memproses file Excel...');
+  
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const wb = XLSX.read(arrayBuffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    
+    const daysCount = getDaysInMonth(currentMonth);
+    const dateStartIdx = 2;
+    
+    const newSales = {};
+    const newFreezer = {};
+    
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const marketName = row[0];
+      if (!marketName || marketName === 'TOTAL SEMUA') continue;
+      
+      const market = MARKETS.find(m => m.name === marketName || m.id === marketName);
+      if (!market) continue;
+      
+      newFreezer[market.id] = parseInt(row[1]) || 0;
+      
+      const salesArr = new Array(31).fill(0);
+      for (let d = 0; d < daysCount; d++) {
+        salesArr[d] = parseInt(row[dateStartIdx + d]) || 0;
+      }
+      newSales[market.id] = salesArr;
+    }
+    
+    if (Object.keys(newSales).length === 0) {
+      throw new Error('Tidak ada data valid di file Excel');
+    }
+    
+    await apiPost('/api/sales', {
+      month: currentMonth,
+      sales: newSales,
+      freezer: newFreezer
+    });
+    
+    serverData.sales[currentMonth] = newSales;
+    serverData.freezer[currentMonth] = newFreezer;
+    
+    render();
+    showAlert('✅ File Excel berhasil di-upload!', 'success');
+  } catch (err) {
+    showAlert('❌ Gagal upload: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+    event.target.value = '';
+  }
+}
+
 // ===== TOGGLE MOBILE VIEW =====
 function toggleMobileView() {
   const isTableMode = document.body.classList.contains('mobile-table-view');
@@ -421,31 +622,7 @@ function initMobileView() {
 
 window.addEventListener('resize', initMobileView);
 
-// ===== MODE ADMIN =====
-function openAdminModal() {
-  document.getElementById('adminModal').classList.add('show');
-  setTimeout(() => document.getElementById('adminCodeInput').focus(), 100);
-}
-
-function closeAdminModal() {
-  document.getElementById('adminModal').classList.remove('show');
-  document.getElementById('adminCodeInput').value = '';
-}
-
-function verifyAdminCode() {
-  const code = document.getElementById('adminCodeInput').value;
-  if (code === '123') {
-    isAdmin = true;
-    closeAdminModal();
-    document.getElementById('adminBtn').style.display = 'none';
-    document.getElementById('editBtn').style.display = 'inline-block';
-    document.getElementById('adminBadge').style.display = 'inline-block';
-    showAlert('✅ Mode admin aktif. Klik "Mode Edit" untuk mulai mengedit.', 'success');
-  } else {
-    showAlert('❌ Kode admin salah!', 'error');
-  }
-}
-
+// ===== MODE EDIT =====
 function enterEditMode() {
   isEditMode = true;
   initWorkingCopy();
@@ -487,19 +664,6 @@ function cancelChanges() {
   updateChangeCount();
   render();
   showAlert('🔄 Perubahan dibatalkan', 'info');
-}
-
-function saveChanges() {
-  if (changedCells.size === 0) {
-    showAlert('Tidak ada perubahan untuk disimpan', 'info');
-    return;
-  }
-  SAMPLE_DATA[currentMonth] = JSON.parse(JSON.stringify(workingData[currentMonth]));
-  FREEZER_DATA[currentMonth] = JSON.parse(JSON.stringify(workingFreezer[currentMonth]));
-  changedCells.clear();
-  updateChangeCount();
-  showAlert('💾 Data berhasil disimpan!', 'success');
-  exitEditMode();
 }
 
 // ===== MOBILE INPUT MODAL =====
@@ -776,13 +940,23 @@ function showAlert(msg, type) {
   setTimeout(() => el.classList.remove('show'), 3000);
 }
 
+function showLoading(text) {
+  document.getElementById('loadingText').textContent = text || 'Memuat...';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
 function logout() {
   localStorage.removeItem('session_token');
+  localStorage.removeItem('session_user');
   window.location.href = '/index.html';
 }
 
 document.getElementById('monthFilter').value = currentMonth;
-document.getElementById('monthFilter').addEventListener('change', (e) => {
+document.getElementById('monthFilter').addEventListener('change', async (e) => {
   if (changedCells.size > 0 && !confirm('Ganti bulan akan membatalkan perubahan. Lanjut?')) {
     e.target.value = currentMonth;
     return;
@@ -790,7 +964,12 @@ document.getElementById('monthFilter').addEventListener('change', (e) => {
   currentMonth = e.target.value;
   changedCells.clear();
   updateChangeCount();
-  render();
+  isEditMode = false;
+  document.body.classList.remove('edit-mode');
+  document.getElementById('editBtn').style.display = 'inline-block';
+  document.getElementById('viewBtn').style.display = 'none';
+  document.getElementById('saveBar').classList.remove('show');
+  await loadFromServer();
 });
 
 document.getElementById('marketFilter').addEventListener('change', (e) => {
@@ -798,16 +977,13 @@ document.getElementById('marketFilter').addEventListener('change', (e) => {
   render();
 });
 
-document.getElementById('adminCodeInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') verifyAdminCode();
-});
 document.getElementById('inputModalValue').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') confirmInputModal();
 });
 
 // ===== INIT =====
 initMobileView();
-render();
+loadFromServer();
 </script>
 </body>
 </html>
