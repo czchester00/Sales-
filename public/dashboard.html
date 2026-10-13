@@ -16,14 +16,12 @@
   
   .container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
   
-  /* Toolbar */
   .toolbar { background: white; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
   .toolbar label { font-weight: 600; color: #555; font-size: 0.85rem; }
   .toolbar input, .toolbar select { padding: 0.6rem 1rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; }
   .toolbar input:focus, .toolbar select:focus { outline: none; border-color: #667eea; }
   
-  /* Mode Controls */
-  .mode-controls { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; }
+  .mode-controls { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
   .btn { padding: 0.5rem 1rem; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .btn:active { transform: scale(0.97); }
   .btn-admin { background: #f39c12; color: white; }
@@ -37,7 +35,6 @@
   .btn-cancel:hover { background: #c0392b; }
   .badge-admin { background: #d4edda; color: #155724; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
   
-  /* Alert */
   .alert { padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; font-weight: 600; display: none; }
   .alert.show { display: block; animation: slideDown 0.3s; }
   .alert.success { background: #d4edda; color: #155724; }
@@ -45,7 +42,6 @@
   .alert.info { background: #d1ecf1; color: #0c5460; }
   @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
   
-  /* Summary Cards */
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
   .card { background: white; padding: 1.2rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
   .card .label { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; }
@@ -54,7 +50,6 @@
   .card.total .label { color: rgba(255,255,255,0.85); }
   .card.total .value { color: white; }
   
-  /* Table */
   .table-wrapper { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
   th, td { padding: 0.55rem 0.5rem; text-align: center; border: 1px solid #e8e8e8; white-space: nowrap; }
@@ -80,7 +75,6 @@
   td.sunday { background: #fce4ec; }
   td.empty { color: #ddd; }
   
-  /* Editable cells (mode edit) */
   body.edit-mode td.editable { cursor: pointer; }
   body.edit-mode td.editable:hover { background: #e3f2fd !important; }
   body.edit-mode td.editable:focus { outline: 2px solid #667eea; background: white !important; }
@@ -95,18 +89,14 @@
   tbody tr.grand-total td.workdays-cell { background: #1a5276; }
   tbody tr.grand-total td.market-power-cell { background: #7b241c; }
   
-  /* Sticky save bar */
   .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 1rem; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); display: none; z-index: 99; gap: 1rem; align-items: center; }
   .save-bar.show { display: flex; }
   .save-bar .info { flex: 1; font-size: 0.9rem; color: #555; font-weight: 600; }
   .save-bar .info .count { color: #667eea; font-weight: 700; }
   
-  /* Mobile cards */
   .mobile-cards { display: none; }
   
   @media (max-width: 768px) {
-    .table-wrapper { display: none; }
-    .mobile-cards { display: block; }
     .cards { grid-template-columns: 1fr 1fr; }
     .card .value { font-size: 1.2rem; }
     nav { padding: 0.8rem 1rem; }
@@ -115,6 +105,31 @@
     .mode-controls { width: 100%; margin-left: 0; justify-content: flex-start; }
     .save-bar { flex-direction: column; }
     .save-bar .info { text-align: center; }
+    
+    .table-wrapper { display: none; }
+    .mobile-cards { display: none; }
+    
+    body.mobile-table-view .table-wrapper {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    body.mobile-table-view .mobile-cards { display: none; }
+    body.mobile-table-view table { font-size: 0.75rem; }
+    body.mobile-table-view th,
+    body.mobile-table-view td { padding: 0.4rem 0.35rem; }
+    body.mobile-table-view thead th.market-col { min-width: 110px; }
+    body.mobile-table-view thead th.freezer-col { min-width: 65px; left: 110px; }
+    body.mobile-table-view tbody td.market-cell { min-width: 110px; }
+    body.mobile-table-view tbody td.freezer-cell { left: 110px; }
+    body.mobile-table-view thead th.avg-col,
+    body.mobile-table-view thead th.last3-col,
+    body.mobile-table-view thead th.total-col,
+    body.mobile-table-view thead th.workdays-col,
+    body.mobile-table-view thead th.market-power-col { min-width: 75px; }
+    
+    body.mobile-card-view .mobile-cards { display: block; }
+    body.mobile-card-view .table-wrapper { display: none; }
   }
   
   .market-card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 1rem; overflow: hidden; }
@@ -133,7 +148,6 @@
   .market-card .stat.workdays .value { color: #2980b9; }
   .market-card .stat.market-power .value { color: #c0392b; }
   
-  /* Mobile date grid (mode edit) */
   .date-grid-mobile { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.3rem; padding: 0.8rem; background: #f8f9fa; }
   .date-grid-mobile .date-btn { aspect-ratio: 1; background: white; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #555; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; }
   .date-grid-mobile .date-btn.sunday { background: #fce4ec; border-color: #f8bbd0; }
@@ -142,7 +156,6 @@
   .date-grid-mobile .date-btn.changed { background: #fff9c4; border-color: #f39c12; }
   .date-grid-mobile .date-btn .val { font-size: 0.65rem; opacity: 0.85; }
   
-  /* Modal */
   .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 200; padding: 1rem; }
   .modal-overlay.show { display: flex; }
   .modal { background: white; border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
@@ -177,6 +190,9 @@
     </select>
     
     <div class="mode-controls" id="modeControls">
+      <button class="btn btn-view" id="viewToggleBtn" onclick="toggleMobileView()" style="display: none;">
+        表格模式 Mode Tabel
+      </button>
       <button class="btn btn-admin" id="adminBtn" onclick="openAdminModal()">🔑 Kode Admin</button>
       <button class="btn btn-edit" id="editBtn" onclick="enterEditMode()" style="display: none;">✏️ Mode Edit</button>
       <button class="btn btn-view" id="viewBtn" onclick="exitEditMode()" style="display: none;">👁️ Mode Lihat</button>
@@ -205,7 +221,6 @@
     </div>
   </div>
   
-  <!-- Desktop Table -->
   <div class="table-wrapper">
     <table id="salesTable">
       <thead id="tableHead"></thead>
@@ -213,12 +228,10 @@
     </table>
   </div>
   
-  <!-- Mobile Cards -->
   <div class="mobile-cards" id="mobileCards"></div>
   
 </div>
 
-<!-- Save Bar -->
 <div class="save-bar" id="saveBar">
   <div class="info">📝 <span class="count" id="changeCount">0</span> perubahan belum disimpan</div>
   <div style="display: flex; gap: 0.8rem;">
@@ -227,7 +240,6 @@
   </div>
 </div>
 
-<!-- Modal Kode Admin -->
 <div class="modal-overlay" id="adminModal">
   <div class="modal">
     <h3>🔑 Kode Admin</h3>
@@ -240,7 +252,6 @@
   </div>
 </div>
 
-<!-- Modal Input Nilai (Mobile) -->
 <div class="modal-overlay" id="inputModal">
   <div class="modal">
     <h3 id="inputModalTitle">Input Nilai</h3>
@@ -254,7 +265,6 @@
 </div>
 
 <script>
-// ===== DATA =====
 const MARKETS = [
   { id: 'blitar', name: 'Blitar 勿里达' },
   { id: 'tulungagung', name: 'Tulungagung 图龙阿贡' }
@@ -271,17 +281,14 @@ const FREEZER_DATA = {
   '2026-10': { blitar: 2151, tulungagung: 2156 }
 };
 
-// Salinan untuk edit (belum disimpan)
 let workingData = null;
 let workingFreezer = null;
-
 let currentMonth = '2026-10';
 let currentFilter = 'all';
 let isAdmin = false;
 let isEditMode = false;
-let changedCells = new Set(); // Set berisi "marketId:date"
+let changedCells = new Set();
 
-// ===== FUNGSI BANTU =====
 function getDaysInMonth(monthStr) {
   const [year, month] = monthStr.split('-').map(Number);
   return new Date(year, month, 0).getDate();
@@ -297,7 +304,6 @@ function getSundayDates(monthStr) {
   return sundays;
 }
 
-// Baca dari workingData (untuk edit) atau SAMPLE_DATA (untuk view)
 function getData(marketId, date) {
   const src = isEditMode && workingData ? workingData : SAMPLE_DATA;
   const m = src[currentMonth];
@@ -330,7 +336,6 @@ function initWorkingCopy() {
   workingFreezer = JSON.parse(JSON.stringify(FREEZER_DATA));
 }
 
-// ===== PERHITUNGAN =====
 function calculateTotal(marketId) {
   const days = getDaysInMonth(currentMonth);
   let t = 0;
@@ -377,6 +382,45 @@ function calculateMarketPower(marketId) {
   return f > 0 ? avg / f : 0;
 }
 
+// ===== TOGGLE MOBILE VIEW =====
+function toggleMobileView() {
+  const isTableMode = document.body.classList.contains('mobile-table-view');
+  if (isTableMode) {
+    document.body.classList.remove('mobile-table-view');
+    document.body.classList.add('mobile-card-view');
+    document.getElementById('viewToggleBtn').textContent = '表格模式 Mode Tabel';
+    localStorage.setItem('mobileView', 'card');
+  } else {
+    document.body.classList.remove('mobile-card-view');
+    document.body.classList.add('mobile-table-view');
+    document.getElementById('viewToggleBtn').textContent = '卡片模式 Mode Kartu';
+    localStorage.setItem('mobileView', 'table');
+  }
+  render();
+}
+
+function initMobileView() {
+  const isMobile = window.innerWidth <= 768;
+  const toggleBtn = document.getElementById('viewToggleBtn');
+  
+  if (isMobile) {
+    toggleBtn.style.display = 'inline-block';
+    const savedView = localStorage.getItem('mobileView') || 'card';
+    if (savedView === 'table') {
+      document.body.classList.add('mobile-table-view');
+      toggleBtn.textContent = '卡片模式 Mode Kartu';
+    } else {
+      document.body.classList.add('mobile-card-view');
+      toggleBtn.textContent = '表格模式 Mode Tabel';
+    }
+  } else {
+    toggleBtn.style.display = 'none';
+    document.body.classList.remove('mobile-card-view', 'mobile-table-view');
+  }
+}
+
+window.addEventListener('resize', initMobileView);
+
 // ===== MODE ADMIN =====
 function openAdminModal() {
   document.getElementById('adminModal').classList.add('show');
@@ -402,7 +446,6 @@ function verifyAdminCode() {
   }
 }
 
-// ===== MODE EDIT =====
 function enterEditMode() {
   isEditMode = true;
   initWorkingCopy();
@@ -451,14 +494,11 @@ function saveChanges() {
     showAlert('Tidak ada perubahan untuk disimpan', 'info');
     return;
   }
-  // TODO: Kirim ke API
-  // Untuk sekarang, kita "commit" working copy ke SAMPLE_DATA
   SAMPLE_DATA[currentMonth] = JSON.parse(JSON.stringify(workingData[currentMonth]));
   FREEZER_DATA[currentMonth] = JSON.parse(JSON.stringify(workingFreezer[currentMonth]));
   changedCells.clear();
   updateChangeCount();
   showAlert('💾 Data berhasil disimpan!', 'success');
-  // Keluar dari mode edit
   exitEditMode();
 }
 
@@ -519,7 +559,6 @@ function renderDesktop() {
   const sundays = getSundayDates(currentMonth);
   const marketsToShow = MARKETS.filter(m => currentFilter === 'all' || currentFilter === m.id);
   
-  // Header
   const thead = document.getElementById('tableHead');
   let h = '<tr>';
   h += '<th class="market-col">市场<br>Market</th>';
@@ -535,7 +574,6 @@ function renderDesktop() {
   h += '</tr>';
   thead.innerHTML = h;
   
-  // Body
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   
@@ -543,14 +581,12 @@ function renderDesktop() {
     const tr = document.createElement('tr');
     let row = `<td class="market-cell">${market.name}</td>`;
     
-    // Freezer (editable di mode edit)
     const freezerVal = getFreezer(market.id);
     const freezerChanged = changedCells.has(`${market.id}:freezer`) ? ' changed' : '';
     const freezerClass = `freezer-cell${isEditMode ? ' editable' : ''}${freezerChanged}`;
     const freezerAttr = isEditMode ? `contenteditable="true" data-market="${market.id}" data-type="freezer"` : '';
     row += `<td class="${freezerClass}" ${freezerAttr}>${freezerVal}</td>`;
     
-    // Tanggal
     for (let d = 1; d <= days; d++) {
       const v = getData(market.id, d);
       const isSun = sundays.has(d);
@@ -584,7 +620,6 @@ function renderDesktop() {
     tbody.appendChild(tr);
   });
   
-  // Grand Total
   if (marketsToShow.length > 1) {
     const tr = document.createElement('tr');
     tr.className = 'grand-total';
@@ -607,7 +642,6 @@ function renderDesktop() {
     tbody.appendChild(tr);
   }
   
-  // Attach event listener untuk edit
   if (isEditMode) {
     tbody.querySelectorAll('td[contenteditable="true"]').forEach(cell => {
       cell.addEventListener('input', handleCellInput);
@@ -697,7 +731,6 @@ function renderMobile() {
       </div>
     `;
     
-    // Di mode edit, tampilkan grid tanggal
     if (isEditMode) {
       html += `<div class="date-grid-mobile">`;
       for (let d = 1; d <= days; d++) {
@@ -719,7 +752,6 @@ function renderMobile() {
     container.appendChild(card);
   });
   
-  // Freezer click handler (mode edit)
   if (isEditMode) {
     container.querySelectorAll('.freezer.editable').forEach(el => {
       el.onclick = () => {
@@ -737,7 +769,6 @@ function renderMobile() {
   }
 }
 
-// ===== UTIL =====
 function showAlert(msg, type) {
   const el = document.getElementById('alertBox');
   el.textContent = msg;
@@ -750,7 +781,6 @@ function logout() {
   window.location.href = '/index.html';
 }
 
-// ===== INIT =====
 document.getElementById('monthFilter').value = currentMonth;
 document.getElementById('monthFilter').addEventListener('change', (e) => {
   if (changedCells.size > 0 && !confirm('Ganti bulan akan membatalkan perubahan. Lanjut?')) {
@@ -768,7 +798,6 @@ document.getElementById('marketFilter').addEventListener('change', (e) => {
   render();
 });
 
-// Enter key di modal
 document.getElementById('adminCodeInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') verifyAdminCode();
 });
@@ -776,6 +805,8 @@ document.getElementById('inputModalValue').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') confirmInputModal();
 });
 
+// ===== INIT =====
+initMobileView();
 render();
 </script>
 </body>
