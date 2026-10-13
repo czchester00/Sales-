@@ -16,7 +16,6 @@ export async function onRequestGet(context) {
     await env.SALES_KV.put('users', JSON.stringify(users));
   }
 
-  // Jangan kirim password ke client
   const safeUsers = users.map(u => ({ username: u.username }));
   return new Response(JSON.stringify({ users: safeUsers }), {
     headers: { 'Content-Type': 'application/json' }
